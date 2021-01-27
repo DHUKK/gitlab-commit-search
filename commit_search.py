@@ -5,7 +5,7 @@ import gitlab
 import argparse
 
 from functools import partial
-from datetime import datetime
+from datetime import datetime,timedelta
 import sqlite3
 import os
 
@@ -73,8 +73,9 @@ def get_most_recent_date():
         String: Date and time of the most recent commit from the database
     """
     cursor = conn.execute("SELECT DATE FROM COMMITS ORDER BY DATE DESC LIMIT 1;")
-    for row in cursor:
-        return row[0]
+    ret = cursor.fetchone()
+    if ret is not None:
+        return str(datetime.fromisoformat(ret[0]) + timedelta(seconds=1))
 
 def print_row(row,desc):
     """Print a row of the database based on the colum headers into a table.
@@ -110,8 +111,8 @@ def update_commits():
 
     for project,commit in commit_matches:
         dt = datetime.fromisoformat(commit.committed_date).replace(tzinfo=None)
-        conn.execute(commit_table.insert(
-            commit.id,project.name,commit.author_name,commit.message,commit.web_url,dt).get_sql())
+        conn.execute("""INSERT OR REPLACE INTO COMMITS (ID, PROJECT, AUTHOR, MESSAGE, LINK, DATE)
+                        VALUES(?,?,?,?,?,?)""", (commit.id,project.name,commit.author_name,commit.message,commit.web_url,dt,))
     conn.commit()
     print(str(len(commit_matches)) + " new commits")
     
