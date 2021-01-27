@@ -6,5 +6,5 @@ To run the tool you must:
     * `pip install -r requirements.txt`
     * OR `pipenv install` if you are using pipenv
   * Setup os environment vars 
-    * `GITLAB_URL` - URL to gitlab server
+    * `GITLAB_URL` - URL to Gitlab server
     * `GITLAB_API_TOKEN` - [Gitlab Personal Access token](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html). Used to log into your account
