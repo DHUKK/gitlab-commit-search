@@ -101,7 +101,7 @@ def update_commits():
     """
     print("Updating commits database:")
     begin = get_most_recent_date()
-    projects = gl.projects.list(starred=True,lazy=True,all=True)
+    projects = gl.projects.list(membership=True,lazy=True,all=True)
     pool = Pool()
     func = partial(get_commits,begin)
     commit_matches = [entry for sublist in pool.map(func,projects) for entry in sublist]
