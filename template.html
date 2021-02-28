@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Search results</title>
+    <style type="text/css">
+        table {
+            width: 100%;
+            max-width: 100%;
+        }
+
+        table,
+        th,
+        td {
+
+            border: 1px solid black;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 15px;
+            white-space: pre-wrap;
+        }
+
+        tr:nth-of-type(even) {
+            background-color: #f3f3f3;
+        }
+
+        * {
+            font-family: "Lucida Console", "Courier New", monospace;
+        }
+    </style>
+</head>
+
+<body>
+    <table>
+        <tr>
+            <th>Link</th>
+            <th>Author</th>
+            <th>Message</th>
+            <th>Date</th>
+        </tr>
+        {% for n in commits %}
+        <tr>
+            <td><a href="{{n[1]}}">{{n[0]|e}}</a></td>
+            <td>{{n[2]|e}}</td>
+            <td>{{n[3]|e}}</td>
+            <td>{{n[4]|e}}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+
+</html>

@@ -5,8 +5,10 @@ name = "pypi"
 
 [packages]
 tabulate = "*"
-pypika = "*"
+PyPika = "*"
 python-gitlab = "*"
+Jinja2 = "*"
+pytz = "*"
 
 [dev-packages]
 
