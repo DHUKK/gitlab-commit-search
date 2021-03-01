@@ -11,7 +11,7 @@ Basic tool for searching commit messagse across multiple gitlab repositories.
      
 ## Usage
 ```
-commit_search.py [-h] [-r REPOS] [-s SEARCH] [-a AUTHOR] [-b BEGIN] [-e END] [-q QUERY] [-u] [-d]
+usage: gitlab-commit-search.py [-h] [-r REPOS] [-s SEARCH] [-a AUTHOR] [-b BEGIN] [-e END] [-o OUTPUT] [-q QUERY] [-u] [-d]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -24,6 +24,8 @@ optional arguments:
   -b BEGIN, --begin BEGIN
                         Date to begin search. dd/mm/YY
   -e END, --end END     Date to begin search. dd/mm/YY
+  -o OUTPUT, --output OUTPUT
+                        Format to output search (html/print/csv).
   -q QUERY, --query QUERY
                         Write your own query. -q 'select count(*) from commits'
   -u, --update          Update the database to the most recent commits.
