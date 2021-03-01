@@ -94,7 +94,7 @@ def get_most_recent_date(project_name):
     ret = dict()
     for row in cursor:
         if row[0] == project_name:
-            return str(datetime.fromisoformat(row[1]) + timedelta(minutes=1))
+            return str(datetime.fromisoformat(row[1]) + timedelta(seconds=1))
     return None
 
 
@@ -135,7 +135,7 @@ def output_print(cursor):
         cursor: output from a sql query execution.
     """
     for row in cursor:
-        print_row(row, out.description)
+        print_row(row, cursor.description)
 
 def output_html(cursor):
     """Output search results to html and open in browser.
@@ -146,11 +146,11 @@ def output_html(cursor):
     templateLoader = jinja2.FileSystemLoader(searchpath="./")
     templateEnv = jinja2.Environment(loader=templateLoader)
     template = templateEnv.get_template("template.html")
-    outputText = template.render(commits=cursor)
-    f = open("test.html", "w")
+    outputText = template.render(commits=cursor,desc=cursor.description)
+    f = open("output.html", "w")
     f.write(outputText)
     f.close()
-    webbrowser.open("test.html", new=0, autoraise=True)
+    webbrowser.open("output.html", new=0, autoraise=True)
 
 def output_csv(cursor):
     """Output search results to html and open in browser.
@@ -158,7 +158,7 @@ def output_csv(cursor):
     Args:
         cursor: output from a sql query execution.
     """
-    with open('test.csv', 'w', newline='') as f:
+    with open('output.csv', 'w', newline='') as f:
         wr = csv.writer(f, quoting=csv.QUOTE_ALL)
         for row in cursor:
             wr.writerow(row)
@@ -217,12 +217,13 @@ if __name__ == '__main__':
     if args.update:
         update_commits()
 
+    out = None
     if args.query != None:
         out = conn.execute(args.query)
-        output_print(out)
         conn.commit()
     elif args.search != None:
         out = search_commits(args.repos, args.search,
                               args.author, args.begin, args.end)
+    if out != None:
         locals()["output_"+args.output](out)
     conn.close()
