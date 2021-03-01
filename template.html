@@ -36,17 +36,15 @@
 <body>
     <table>
         <tr>
-            <th>Link</th>
-            <th>Author</th>
-            <th>Message</th>
-            <th>Date</th>
+            {% for n in desc %}
+                <th>{{n[0]|e}}</th>
+            {% endfor %}
         </tr>
         {% for n in commits %}
         <tr>
-            <td><a href="{{n[1]}}">{{n[0]|e}}</a></td>
-            <td>{{n[2]|e}}</td>
-            <td>{{n[3]|e}}</td>
-            <td>{{n[4]|e}}</td>
+            {% for c in n %}
+            <td>{{c|e}}</td>
+            {% endfor %}
         </tr>
         {% endfor %}
     </table>
