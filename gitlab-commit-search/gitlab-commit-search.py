@@ -25,7 +25,7 @@ parser.add_argument("-a", "--author", action='append',
 parser.add_argument("-b", "--begin", help="Date to begin search. dd/mm/YY")
 parser.add_argument("-e", "--end", help="Date to begin search. dd/mm/YY")
 parser.add_argument(
-    "-o", "--output", help="Format to output search", default="print")
+    "-o", "--output", help="Format to output search (html/print/csv).", default="print")
 parser.add_argument(
     "-q", "--query", help="Write your own query. -q 'select count(*) from commits'")
 parser.add_argument("-u", "--update", help="Update the database to the most recent commits.",
