@@ -1,41 +1,18 @@
-#!/home/dennis/.local/share/virtualenvs/git_utils-_PH9-UkK/bin/python3.8
-
 from tabulate import tabulate
 from pypika import Query, Table, Field, Criterion, Order
 from multiprocessing import Pool
 import gitlab
-import argparse
 
 from datetime import datetime, timedelta
+from itertools import repeat
 import sqlite3
 import os
-import jinja2
 import webbrowser
 import pytz
 import csv
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument("-r", "--repos", action='append',
-                    help="Repos to search: -r repo1 -r 'repo 2'. If blank searches all repos you are a member of.")
-parser.add_argument("-s", "--search", action='append',
-                    help="Strings to search for in the commit message: -s '#CODE' -s 'phrase'")
-parser.add_argument("-a", "--author", action='append',
-                    help="Authors to search: -s 'dennis' -a 'author2'")
-parser.add_argument("-b", "--begin", help="Date to begin search. dd/mm/YY")
-parser.add_argument("-e", "--end", help="Date to begin search. dd/mm/YY")
-parser.add_argument(
-    "-o", "--output", help="Format to output search (html/print/csv).", default="print")
-parser.add_argument(
-    "-q", "--query", help="Write your own query. -q 'select count(*) from commits'")
-parser.add_argument("-u", "--update", help="Update the database to the most recent commits.",
-                    default=False, action='store_true')
-parser.add_argument("-d", "--drop", help="Drops the commits table.",
-                    default=False, action='store_true')
-args = parser.parse_args()
-
-
-def get_new_commits(project):
+def get_new_commits(begin, project):
     """Function to get new commits from a project.
 
     Args:
@@ -45,7 +22,7 @@ def get_new_commits(project):
     Returns:
         List of tuples: [(project,commit)...]   
     """
-    begin = get_most_recent_date(project.name)
+    
     try:
         commits = []
         commits = project.commits.list(since=begin, per_page=-1)
@@ -58,7 +35,7 @@ def get_new_commits(project):
     return commits
 
 
-def setup_table():
+def setup_table(conn):
     """Setup tables for commits to be stored.
     """
     conn.execute('''CREATE TABLE IF NOT EXISTS COMMITS
@@ -76,14 +53,14 @@ def setup_table():
                         ON COMMITS(AUTHOR);''')
 
 
-def refresh_table():
+def refresh_table(conn):
     """Drop tables and setup tables again
     """
     conn.execute('''DROP TABLE IF EXISTS COMMITS''')
-    setup_table()
+    setup_table(conn)
 
 
-def get_most_recent_date(project_name):
+def get_most_recent_date(conn):
     """Get the date of the most recent commit from the datebase.
 
     Returns:
@@ -93,9 +70,8 @@ def get_most_recent_date(project_name):
         "SELECT PROJECT, MAX(DATE) FROM COMMITS GROUP BY PROJECT;")
     ret = dict()
     for row in cursor:
-        if row[0] == project_name:
-            return str(datetime.fromisoformat(row[1]) + timedelta(seconds=1))
-    return None
+        ret[row[0]] = str(datetime.fromisoformat(row[1]) + timedelta(seconds=1))
+    return ret
 
 
 def print_row(row, desc):
@@ -109,14 +85,16 @@ def print_row(row, desc):
     print(tabulate(entry, tablefmt='fancy_grid', colalign=("right",)))
 
 
-def update_commits():
+def update_commits(conn,gl):
     """Update commits database with most recent commits.
     """
     print("Updating commits database:")
     projects = gl.projects.list(starred=True, lazy=True, all=True)
     pool = Pool()
-    commits = [entry for sublist in pool.map(
-        get_new_commits, projects) for entry in sublist]
+    begins = get_most_recent_date(conn)
+    test = [(begins[p.name],p) for p in projects]
+    commits = [entry for sublist in pool.starmap(
+        get_new_commits, test) for entry in sublist]
     pool.close()
     pool.join()
 
@@ -137,21 +115,6 @@ def output_print(cursor):
     for row in cursor:
         print_row(row, cursor.description)
 
-def output_html(cursor):
-    """Output search results to html and open in browser.
-
-    Args:
-        cursor: output from a sql query execution.
-    """
-    templateLoader = jinja2.FileSystemLoader(searchpath="./")
-    templateEnv = jinja2.Environment(loader=templateLoader)
-    template = templateEnv.get_template("template.html")
-    outputText = template.render(commits=cursor,desc=cursor.description)
-    f = open("output.html", "w")
-    f.write(outputText)
-    f.close()
-    webbrowser.open("output.html", new=0, autoraise=True)
-
 def output_csv(cursor):
     """Output search results to html and open in browser.
 
@@ -164,7 +127,7 @@ def output_csv(cursor):
             wr.writerow(row)
 
 
-def search_commits(repos, search, author, begin, end):
+def search_commits(conn, repos, search, author, begin, end):
     """Search commits currently in the database.
 
     Args:
@@ -174,6 +137,7 @@ def search_commits(repos, search, author, begin, end):
         begin (datetime): Datetime to begin the search from.
         end (datetime): Datetime to end the search at.
     """
+    commit_table = Table('COMMITS')
     sql = commit_table.select(
         commit_table.PROJECT, commit_table.LINK,
         commit_table.AUTHOR, commit_table.MESSAGE,
@@ -195,15 +159,12 @@ def search_commits(repos, search, author, begin, end):
 
     return conn.execute(sql.get_sql())
 
-
-if __name__ == '__main__':
-    gl = gitlab.Gitlab(os.getenv('GITLAB_URL'),
-                       private_token=os.getenv('GITLAB_API_TOKEN'))
-
+def run(args):
     conn = sqlite3.connect('commits.db')
-    commit_table = Table('COMMITS')
+    gl = gitlab.Gitlab(os.getenv('GITLAB_URL'),
+                        private_token=os.getenv('GITLAB_API_TOKEN'))
 
-    setup_table()
+    setup_table(conn)
     if args.begin != None:
         args.begin = datetime.strptime(
             args.begin, '%d/%m/%Y').strftime('%Y-%m-%d')
@@ -212,18 +173,18 @@ if __name__ == '__main__':
 
     if args.drop:
         if input("Are you sure you want to drop the commits table? [y/N] ").lower() == "y":
-            refresh_table()
+            refresh_table(conn)
 
     if args.update:
-        update_commits()
+        update_commits(conn,gl)
 
     out = None
     if args.query != None:
         out = conn.execute(args.query)
         conn.commit()
     elif args.search != None:
-        out = search_commits(args.repos, args.search,
+        out = search_commits(conn, args.repos, args.search,
                               args.author, args.begin, args.end)
     if out != None:
-        locals()["output_"+args.output](out)
+        globals()["output_"+args.output](out)
     conn.close()
