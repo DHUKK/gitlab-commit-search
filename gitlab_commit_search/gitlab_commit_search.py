@@ -11,6 +11,26 @@ import webbrowser
 import pytz
 import csv
 
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-r", "--repos", action='append',
+                    help="Repos to search: -r repo1 -r 'repo 2'. If blank searches all repos you are a member of.")
+parser.add_argument("-s", "--search", action='append',
+                    help="Strings to search for in the commit message: -s '#CODE' -s 'phrase'")
+parser.add_argument("-a", "--author", action='append',
+                    help="Authors to search: -s 'dennis' -a 'author2'")
+parser.add_argument("-b", "--begin", help="Date to begin search. dd/mm/YY")
+parser.add_argument("-e", "--end", help="Date to begin search. dd/mm/YY")
+parser.add_argument(
+    "-o", "--output", help="Format to output search (html/print/csv).", default="print")
+parser.add_argument(
+    "-q", "--query", help="Write your own query. -q 'select count(*) from commits'")
+parser.add_argument("-u", "--update", help="Update the database to the most recent commits.",
+                    default=False, action='store_true')
+parser.add_argument("-d", "--drop", help="Drops the commits table.",
+                    default=False, action='store_true')
+args = parser.parse_args()
 
 def get_new_commits(begin, project):
     """Function to get new commits from a project.
@@ -159,7 +179,7 @@ def search_commits(conn, repos, search, author, begin, end):
 
     return conn.execute(sql.get_sql())
 
-def run(args):
+def run():
     conn = sqlite3.connect('commits.db')
     gl = gitlab.Gitlab(os.getenv('GITLAB_URL'),
                         private_token=os.getenv('GITLAB_API_TOKEN'))
