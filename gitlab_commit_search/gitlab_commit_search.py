@@ -112,7 +112,7 @@ def update_commits(conn,gl):
     projects = gl.projects.list(starred=True, lazy=True, all=True)
     pool = Pool()
     begins = get_most_recent_date(conn)
-    test = [(begins[p.name],p) for p in projects]
+    test = [(begins.get(p.name,None),p) for p in projects]
     commits = [entry for sublist in pool.starmap(
         get_new_commits, test) for entry in sublist]
     pool.close()
